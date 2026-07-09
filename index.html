@@ -87,4 +87,240 @@
     border: 1px solid #4aa3df;
     padding: 10px;
     width: 400px;
-    max
+    max-width: 100%;
+  }
+
+  #chat-log {
+    background:#ffffff;
+    border:1px solid #4aa3df;
+    height:200px;
+    overflow-y:auto;
+    padding:10px;
+  }
+
+  button {
+    background-color: #4aa3df;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    margin-left: 5px;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  button:hover {
+    background-color: #2f8ac7;
+  }
+
+  /* 警告メッセージ */
+  #warning {
+    color: red;
+    font-weight: bold;
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div id="page-wrapper">
+
+<h2>都市生活学部履修登録</h2>
+
+<div id="main-wrapper">
+
+  <!-- 時間割 -->
+  <div id="table-wrapper">
+    <table id="timetable">
+      <tr>
+        <th>時限 / 曜日</th>
+        <th>月</th>
+        <th>火</th>
+        <th>水</th>
+        <th>木</th>
+        <th>金</th>
+      </tr>
+
+      <tr>
+        <th>1限</th>
+        <td class="cell required" data-name="SDPBL">SDPBL</td>
+        <td class="cell" data-name=""></td>
+        <td class="cell required" data-name="サービスデザイン演習">サービスデザイン演習</td>
+        <td class="cell" data-name=""></td>
+        <td class="cell" data-name=""></td>
+      </tr>
+
+      <tr>
+        <th>2限</th>
+        <td class="cell" data-name=""></td>
+        <td class="cell required" data-name="空間デザイン演習">空間デザイン演習</td>
+        <td class="cell" data-name=""></td>
+        <td class="cell required" data-name="経営学概論">経営学概論</td>
+        <td class="cell" data-name=""></td>
+      </tr>
+
+      <tr>
+        <th>3限</th>
+        <td class="cell required" data-name="マーケティング概論">マーケティング概論</td>
+        <td class="cell" data-name=""></td>
+        <td class="cell required" data-name="CommunicationSkills">CommunicationSkills</td>
+        <td class="cell" data-name=""></td>
+        <td class="cell" data-name=""></td>
+      </tr>
+
+      <tr>
+        <th>4限</th>
+        <td class="cell" data-name=""></td>
+        <td class="cell required" data-name="都市計画">都市計画</td>
+        <td class="cell" data-name=""></td>
+        <td class="cell" data-name=""></td>
+        <td class="cell" data-name=""></td>
+      </tr>
+
+      <tr>
+        <th>5限</th>
+        <td class="cell" data-name=""></td>
+        <td class="cell" data-name=""></td>
+        <td class="cell" data-name=""></td>
+        <td class="cell" data-name=""></td>
+        <td class="cell" data-name=""></td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- TCUchatbot -->
+  <div id="chatbot-box">
+    <h3>TCUchatbot</h3>
+    <div id="chat-log"></div>
+    <input id="chat-input" type="text" placeholder="質問を入力…" style="width:300px;">
+    <button id="chat-send">送信</button>
+  </div>
+
+</div>
+
+<!-- 科目候補（左）＋口コミ（右） -->
+<div id="lower-wrapper">
+  <div id="subject-list" style="display:none;"></div>
+  <div id="review-box" style="display:none;"></div>
+</div>
+
+<!-- 単位数 -->
+<div id="credit-box">
+  <h3>現在の取得単位：<span id="credit-count">0</span> / 24</h3>
+  <div id="warning"></div>
+</div>
+
+</div><!-- /page-wrapper -->
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  const allSelectableSubjects = [
+    "生涯スポーツ","民法と商法","心理学1b","国際関係論",
+    "世界の住まい","基礎体育1b","デーサイ2","食料と農業"
+  ];
+
+  const reviews = {
+    "都市計画": ["都市の成り立ちが分かりやすい授業でした。","先生の話が具体例多めで理解しやすい。","レポートが大変です。"],
+    "サービスデザイン演習": ["教科書は必須なので買っておいた方がよい。","欠席すると班が変わって面倒だった。","グループワークが多くて楽しい。"],
+    "空間デザイン演習": ["課題提出の前は毎日居残りです。","模型製作が楽しい。","夜遅くまで居残りすることもあります。"],
+    "経営学概論": ["授業内課題が多い。","内容が専門的で難しい。","授業内で読む文章が面白い。"],
+    "SDPBL": ["課題が多い。","授業外で集まることが多い。","発表が酷評されることもあるので心構えを。"],
+    "CommunicationSkills": ["先生により授業方針が異なる。","テストは時間配分を意識した方がいい。","ペアワークが多い。"],
+    "マーケティング概論": ["テストが持ち込み可なので教科書は必須。","テストは過去問を入手した方がいいです。","先生の話が聞き取りづらい。"],
+    "生涯スポーツ": ["スポーツについて学べる。","テストがない。","戦略が知れて面白かった。"],
+    "民法と商法": ["テストが難しく単位がとりづらい。","弁護士志望でないなら履修不要。","オンラインで受講できないのが不便。"],
+    "心理学1b": ["オンラインで受講できなくなりった。","始まる前の雑談が楽しい。","テストは事前に問題がわかるので対策できる。"],
+    "国際関係論": ["単位は取りやすい。","レポートの文字数制限が多い。","課題は少なめで取り組みやすい。"],
+    "世界の住まい": ["住まいの構造や歴史が学べる。","テストとあるが実際はレポートである。","地理の授業を思い出す。"],
+    "基礎体育1b": ["授業の雰囲気が良い。","２クオーターからテニスが無くなりました。","先生も優しくてよいです。"],
+    "デーサイ2": ["課題が少ない。","グループワークが中心で楽しい。","小テストがあるが難しくない。"],
+    "食料と農業": ["事前課題があるが時間はかからない。","先生が優しい。","気軽に受講できる。"]
+  };
+
+  let credit = 0;
+
+  document.querySelectorAll('.required').forEach(req => credit += 2);
+  document.getElementById('credit-count').innerText = credit;
+
+  function attachRegisterEvents(cell) {
+    document.querySelectorAll(".register-btn").forEach(btn => {
+      btn.onclick = () => {
+        const sub = btn.dataset.sub;
+
+        if (credit + 2 > 24) {
+          document.getElementById("warning").innerText =
+            "⚠ 24単位を超えるため登録できません";
+          return;
+        }
+
+        document.getElementById("warning").innerText = "";
+
+        cell.innerText = sub;
+        cell.dataset.name = sub;
+        cell.classList.add("registered");
+
+        credit += 2;
+        document.getElementById('credit-count').innerText = credit;
+      };
+    });
+  }
+
+  document.querySelectorAll('.cell').forEach(cell => {
+    cell.addEventListener('click', () => {
+
+      const listDiv = document.getElementById('subject-list');
+      const reviewDiv = document.getElementById('review-box');
+      const subjectName = cell.dataset.name;
+
+      reviewDiv.style.display = 'none';
+
+      if (cell.classList.contains('required')) {
+        listDiv.innerHTML =
+          `<h3>必修</h3>
+           <button class="review-btn" data-sub="${subjectName}">口コミを見る</button>`;
+        listDiv.style.display = 'block';
+
+        document.querySelector(".review-btn").onclick = () => {
+          reviewDiv.innerHTML =
+            `<h3>${subjectName} の口コミ</h3>` +
+            reviews[subjectName].map(r => `<p>・${r}</p>`).join('');
+          reviewDiv.style.display = 'block';
+        };
+        return;
+      }
+
+      const shuffled = allSelectableSubjects.sort(() => Math.random() - 0.5);
+      const candidates = shuffled.slice(0, Math.floor(Math.random() * 2) + 2);
+
+      listDiv.innerHTML = `<h3>登録可能科目</h3>`;
+
+      candidates.forEach(sub => {
+        listDiv.innerHTML +=
+          `<div>
+             <span>${sub}</span>
+             <button class="review-btn" data-sub="${sub}">口コミ</button>
+             <button class="register-btn" data-sub="${sub}">登録</button>
+           </div>`;
+      });
+
+      listDiv.style.display = 'block';
+
+      document.querySelectorAll(".review-btn").forEach(btn => {
+        btn.onclick = () => {
+          const sub = btn.dataset.sub;
+          reviewDiv.innerHTML =
+            `<h3>${sub} の口コミ</h3>` +
+            reviews[sub].map(r => `<p>・${r}</p>`).join('');
+          reviewDiv.style.display = 'block';
+        };
+      });
+
+      attachRegisterEvents(cell);
+
+    });
+  });
+
+});
+</script>
+
+</body>
+</html>
